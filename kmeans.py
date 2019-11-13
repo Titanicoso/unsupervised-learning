@@ -9,7 +9,7 @@ class KMeans:
         self.training_set = training_set
         self.centroids = {}
         self.k = k
-        initial_classes = [random.randint(1, k) for x in range(len(training_set))]
+        initial_classes = [random.randint(0, k - 1) for x in range(len(training_set))]
         self.calculate_centroids(initial_classes)
 
     def train(self):
@@ -44,11 +44,19 @@ class KMeans:
 
     def predict(self, element):
         best_classification = None
+        best_distance = 0
         for index, centroid in self.centroids.items():
             dist = self.euclidean_distance(element, centroid)
-            if best_classification is None or dist < best_classification:
+            if best_classification is None or dist < best_distance:
                 best_classification = index
+                best_distance = dist
         return best_classification
+
+    def predictAll(self, elements):
+        predictions = []
+        for element in elements:
+            predictions.append(self.predict(element))
+        return predictions
 
     @staticmethod
     def euclidean_distance(element1, element2):
