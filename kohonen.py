@@ -7,7 +7,7 @@ class Kohonen:
 
     def __init__(self, n_iterations, init_learning_rate, training_set) -> None:
 
-        network_dimensions = np.array([7, 7])
+        network_dimensions = np.array([3, 3])
         self.n_iterations = n_iterations
         self.init_learning_rate = init_learning_rate
 

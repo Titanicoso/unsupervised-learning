@@ -27,12 +27,14 @@ def k_means(training_set, test_set, test_set_class):
 
 
 def kohonen(training_set, test_set, training_set_class, test_set_class):
-    training_set_array = np.array(training_set).reshape(len(training_set[0]), len(training_set))
+    training_set_array = np.array(training_set).T
+    # for element in training_set:
     kohonen = Kohonen(10000, 0.01, training_set_array)
     kohonen.train()
-    # kohonen.plot()
+    kohonen.plot()
     for index, element in enumerate(training_set):
-        bmu, bmu_idx = kohonen.find_bmu(np.array(element).reshape(len(element), 1))
+        t1 = kohonen.data[:, index].reshape(np.array([kohonen.m, 1]))
+        bmu, bmu_idx = kohonen.find_bmu(t1)
         print(bmu_idx, training_set_class[index])
 
 
