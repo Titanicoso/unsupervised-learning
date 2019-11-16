@@ -17,6 +17,7 @@ parser.add_argument("-a", help="Authors to consider", type=str, default='c,f,p,v
 parser.add_argument("-size", help="Size of network", type=int, required=False)
 parser.add_argument("-km", help="K from k-means", type=int, default=5, required=False)
 parser.add_argument("-l", help="Linkage", type=str, default='single', required=False)
+parser.add_argument("-n", help="Normalize", default=True, required=False, action='store_true')
 args = parser.parse_args()
 
 point = args.p
@@ -26,6 +27,7 @@ km = args.km
 size = args.size
 linkage = args.l
 attributes_to_consider = args.attrs
+normalize = args.n
 
 authors = []
 if 'c' in args.a:
@@ -68,7 +70,7 @@ def kohonen(training_set, test_set, test_set_class):
         print(bmu_idx, test_set_class[index])
 
 
-def hierarchical_clustering(training_set, test_set, test_set_class):
+def hierarchical_clustering(training_set):
     training_set_array = np.array(training_set)
     hc = HierarchicalClustering(training_set_array, linkage)
     z = hc.cluster()
@@ -77,7 +79,28 @@ def hierarchical_clustering(training_set, test_set, test_set_class):
 
 
 attributes, classifications = read_texts(authors, attributes_to_consider)
-training_set, test_set, training_set_class, test_set_class = setup_training_test_sets_joined(attributes, classifications, split)
+training_set, test_set, training_set_class, test_set_class = setup_training_test_sets_joined(attributes, classifications,
+                                                                                             split)
+if normalize:
+    attributes_group = [[] for i in range(len(attributes[0]))]
+
+    for i, attribute in enumerate(attributes):
+        for j in range(len(attribute)):
+            attributes_group[j].append(attribute[j])
+
+    normalized_attributes = [[] for i in range(len(attributes[0]))]
+    for i, attribute_type in enumerate(attributes_group):
+        max = np.max(attribute_type)
+        for attribute in attribute_type:
+            normalized_attributes[i].append(attribute / max)
+
+    result = [[] for i in range(len(attributes))]
+    for i, a in enumerate(attributes):
+        for j in range(len(attributes[0])):
+            result[i].append(normalized_attributes[j][i])
+
+    training_set, test_set, training_set_class, test_set_class = setup_training_test_sets_joined(result, classifications, split)
+
 
 if point == 'km':
     k_means(training_set, test_set, test_set_class)
@@ -86,6 +109,6 @@ elif point == 'som':
     kohonen(training_set, test_set, test_set_class)
 
 else:
-    hierarchical_clustering(training_set, test_set, test_set_class)
+    hierarchical_clustering(training_set)
 
 

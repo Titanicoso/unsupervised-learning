@@ -38,7 +38,7 @@ class Kohonen:
 
         self.data = training_set
 
-        normalise_data = False
+        normalise_data = True
 
         if normalise_data:
             self.data = training_set / training_set.max(axis=1)[:, np.newaxis]
