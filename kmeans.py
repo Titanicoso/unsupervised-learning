@@ -1,6 +1,10 @@
 import random
 import math
+from collections import OrderedDict
+
 import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib import patches
 
 
 class KMeans:
@@ -57,6 +61,45 @@ class KMeans:
         for element in elements:
             predictions.append(self.predict(element))
         return predictions
+
+    def plot(self, test_set, test_set_class):
+        fig = plt.figure()
+
+        ax = fig.add_subplot(111, aspect='equal')
+        ax.set_xlim((0, self.k))
+        ax.set_ylim((0, 1))
+        ax.set_title("Clasificación")
+
+        classes_color = {}
+        colors = ['r', 'g', 'b', 'c', 'm']
+        counter = 0
+        classes = {}
+
+        for index, element in enumerate(test_set):
+            prediction = self.predict(element)
+            classification = test_set_class[index]
+            l = classes.get(prediction, [])
+            l.append(classification)
+            classes[prediction] = l
+
+            if classes_color.get(classification) is None:
+                classes_color[classification] = colors[counter]
+                counter += 1
+
+        for x in range(self.k):
+            y = 0
+            ax.add_patch(patches.Rectangle((x, y), 1, 1, facecolor='white', edgecolor='black'))
+
+            for classification in classes.get(x, []):
+                x_aux = x + 0.5 + np.random.normal(0, 0.15)
+                y_aux = y + 0.5 + np.random.normal(0, 0.15)
+                plt.plot(x_aux, y_aux, marker='.', color=classes_color[classification], markersize=24,
+                         label=classification)
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = OrderedDict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(), loc='center left', bbox_to_anchor=[1, 0.5])
+        plt.savefig("plots/class_kmeans.png", bbox_inches='tight')
 
     @staticmethod
     def euclidean_distance(element1, element2):

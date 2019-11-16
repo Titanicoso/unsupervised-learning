@@ -1,13 +1,30 @@
+from collections import defaultdict, OrderedDict
+import random
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches as patches
 
 
+class BmuIndx:
+    def __init__(self, x, y) -> None:
+        self.x = x
+        self.y = y
+
+    def __eq__(self, o) -> bool:
+        return o.x == self.x and o.y == self.y
+
+    def __str__(self) -> str:
+        return str(self.x) + " " + str(self.y)
+
+    def __hash__(self) -> int:
+        return hash(self.x) + hash(self.y)
+
+
 class Kohonen:
 
-    def __init__(self, n_iterations, init_learning_rate, training_set) -> None:
+    def __init__(self, n_iterations, init_learning_rate, training_set, m, n) -> None:
 
-        network_dimensions = np.array([3, 3])
+        network_dimensions = np.array([m, n])
         self.n_iterations = n_iterations
         self.init_learning_rate = init_learning_rate
 
@@ -25,8 +42,7 @@ class Kohonen:
         self.data = training_set
         if normalise_data:
             if normalise_by_column:
-                col_maxes = training_set.max(axis=0)
-                self.data = training_set / col_maxes[np.newaxis, :]
+                self.data = training_set / training_set.max(axis=1)[:, np.newaxis]
             else:
                 self.data = training_set / self.data.max()
 
@@ -34,16 +50,11 @@ class Kohonen:
 
     def train(self):
         for i in range(self.n_iterations):
-            # select a training example at random
-            t = self.data[:, np.random.randint(0, self.n)].reshape(np.array([self.m, 1]))
 
-            # find its Best Matching Unit
+            t = self.data[:, np.random.randint(0, self.n)].reshape(np.array([self.m, 1]))
             bmu, bmu_idx = self.find_bmu(t)
 
-            if i == self.n_iterations-1:
-                print(bmu_idx)
-
-            # decay the SOM parameters
+            # ajustar parametros
             r = self.decay_radius(i)
             l = self.decay_learning_rate(i)
 
@@ -57,7 +68,7 @@ class Kohonen:
                     w_dist = np.sqrt(w_dist)
 
                     if w_dist <= r:
-                        # calculate the degree of influence (based on the 2-D distance)
+                        # calcular influencia (basado en distancia 2d)
                         influence = Kohonen.calculate_influence(w_dist, r)
 
                         # new w = old w + (learning rate * influence * delta)
@@ -65,20 +76,19 @@ class Kohonen:
                         new_w = w + (l * influence * (t - w))
                         self.net[x, y, :] = new_w.reshape(1, len(t))
 
+    # best matching unit
     def find_bmu(self, t):
-        """
-            Find the best matching unit for a given vector, t
-            Returns: bmu and bmu_idx is the index of this vector in the SOM
-        """
         bmu_idx = np.array([0, 0])
         min_dist = np.Inf
 
         # calculate the distance between each neuron and the input
         for x in range(self.net.shape[0]):
             for y in range(self.net.shape[1]):
+
                 w = self.net[x, y, :].reshape(self.m, 1)
                 sq_dist = np.sum((w - t) ** 2)
                 sq_dist = np.sqrt(sq_dist)
+
                 if sq_dist < min_dist:
                     min_dist = sq_dist  # dist
                     bmu_idx = np.array([x, y])  # id
@@ -96,19 +106,75 @@ class Kohonen:
     def calculate_influence(distance, radius):
         return np.exp(-distance / (2 * (radius ** 2)))
 
-    def plot(self):
+    def plot(self, test_set, test_set_class):
+        bmus = defaultdict(list)
+        classes_color = {}
+        colors = ['r', 'g', 'b', 'c', 'm']
+        counter = 0
+
+        for index, element in enumerate(test_set):
+            t = np.array(element).reshape(np.array([self.m, 1]))
+            bmu, bmu_idx = self.find_bmu(t)
+
+            bmuIndex = BmuIndx(bmu_idx[0], bmu_idx[1])
+
+            classification = test_set_class[index]
+            l = bmus.get(bmuIndex, [])
+            l.append(classification)
+            bmus[bmuIndex] = l
+
+            if classes_color.get(classification) is None:
+                classes_color[classification] = colors[counter]
+                counter += 1
+
+        self.plot_markers(classes_color, bmus)
+
+        for classification in classes_color.keys():
+            self.plot_class_density(bmus, classification, len(test_set))
+
+    def plot_class_density(self, bmus, classification, max):
         fig = plt.figure()
 
         ax = fig.add_subplot(111, aspect='equal')
-        ax.set_xlim((0, self.net.shape[0] + 1))
-        ax.set_ylim((0, self.net.shape[1] + 1))
-        ax.set_title('Self-Organising Map after %d iterations' % self.n_iterations)
+        ax.set_xlim((0, self.net.shape[0]))
+        ax.set_ylim((0, self.net.shape[1]))
+        ax.set_title("Densidad para " + classification)
 
-        # plot
-        for x in range(1, self.net.shape[0] + 1):
-            for y in range(1, self.net.shape[1] + 1):
-                ax.add_patch(patches.Rectangle((x - 0.5, y - 0.5), 1, 1,
-                                               facecolor=self.net[x - 1, y - 1],
-                                               edgecolor='none'))
-        plt.show()
+        for x in range(self.net.shape[0]):
+            for y in range(self.net.shape[1]):
+                index = BmuIndx(x, y)
+                color = bmus.get(index, []).count(classification)
 
+                if color != 0:
+                    aux = color / max
+                    color = (1-aux, aux, aux)
+                else:
+                    color = (1, 1, 1)
+
+                ax.add_patch(patches.Rectangle((x, y), 1, 1, facecolor=color, edgecolor='black'))
+
+        plt.savefig("plots/densidad" + classification + ".png", bbox_inches='tight')
+        # plt.show()
+
+    def plot_markers(self, classes_color, bmus):
+        fig = plt.figure()
+
+        ax = fig.add_subplot(111, aspect='equal')
+        ax.set_xlim((0, self.net.shape[0]))
+        ax.set_ylim((0, self.net.shape[1]))
+        ax.set_title("Clasificación")
+
+        for x in range(self.net.shape[0]):
+            for y in range(self.net.shape[1]):
+                ax.add_patch(patches.Rectangle((x, y), 1, 1, facecolor='white', edgecolor='black'))
+
+                for classification in bmus.get(BmuIndx(x, y), []):
+                    x_aux = x + 0.5 + np.random.normal(0, 0.15)
+                    y_aux = y + 0.5 + np.random.normal(0, 0.15)
+                    plt.plot(x_aux, y_aux, marker='.', color=classes_color[classification], markersize=24, label=classification)
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = OrderedDict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(), loc='center left', bbox_to_anchor=[1, 0.5])
+        plt.savefig("plots/class_kohonen.png", bbox_inches='tight')
+        # plt.show()
