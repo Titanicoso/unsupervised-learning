@@ -1,18 +1,22 @@
 import argparse
 import math
 
+import matplotlib.pyplot as plt
 from setup_data import *
 from kmeans import KMeans
 from kohonen import Kohonen
+from hierarchical_clustering import HierarchicalClustering
+from scipy.cluster.hierarchy import dendrogram
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-p", help="Algorithm", choices={"km", "aj", "som"}, type=str, default='km', required=False)
+parser.add_argument("-p", help="Algorithm", choices={"km", "hc", "som"}, type=str, default='hc', required=False)
 parser.add_argument("-s", help="Split testing and test data percentage.", type=float, default=0.8, required=False)
 parser.add_argument("-k", help="KNN k", type=int, default=5, required=False)
 parser.add_argument("-attrs", help="Attributes to consider", type=str, default='abcdefg', required=False)
 parser.add_argument("-a", help="Authors to consider", type=str, default='c,f,p,va,ve', required=False)
 parser.add_argument("-size", help="Size of network", type=int, required=False)
 parser.add_argument("-km", help="K from k-means", type=int, default=5, required=False)
+parser.add_argument("-l", help="Linkage", type=str, default='single', required=False)
 args = parser.parse_args()
 
 point = args.p
@@ -20,6 +24,7 @@ split = args.s
 k = args.k
 km = args.km
 size = args.size
+linkage = args.l
 attributes_to_consider = args.attrs
 
 authors = []
@@ -63,6 +68,14 @@ def kohonen(training_set, test_set, test_set_class):
         print(bmu_idx, test_set_class[index])
 
 
+def hierarchical_clustering(training_set, test_set, test_set_class):
+    training_set_array = np.array(training_set)
+    hc = HierarchicalClustering(training_set_array, linkage)
+    z = hc.cluster()
+    dendrogram(z, labels=training_set_class, link_color_func=lambda k: 'b')
+    plt.savefig("plots/dendrogram.png", bbox_inches='tight')
+
+
 attributes, classifications = read_texts(authors, attributes_to_consider)
 training_set, test_set, training_set_class, test_set_class = setup_training_test_sets_joined(attributes, classifications, split)
 
@@ -71,5 +84,8 @@ if point == 'km':
 
 elif point == 'som':
     kohonen(training_set, test_set, test_set_class)
+
+else:
+    hierarchical_clustering(training_set, test_set, test_set_class)
 
 

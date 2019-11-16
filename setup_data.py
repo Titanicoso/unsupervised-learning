@@ -132,7 +132,7 @@ def read_texts_author(author, attributes_to_consider):
     for file_name in file_names:
         attribute = []
 
-        with open(file_name, 'r') as f:
+        with open(file_name, 'r', encoding='utf-8') as f:
             lines = [line.lower() for line in f]
             words, mean_word_count_in_line = get_words(lines)
             total_word_count = len(words)
