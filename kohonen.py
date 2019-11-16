@@ -28,9 +28,6 @@ class Kohonen:
         self.n_iterations = n_iterations
         self.init_learning_rate = init_learning_rate
 
-        normalise_data = False
-        normalise_by_column = False
-
         self.m = training_set.shape[0]
         self.n = training_set.shape[1]
 
@@ -40,13 +37,17 @@ class Kohonen:
         self.time_constant = self.n_iterations / np.log(self.init_radius)
 
         self.data = training_set
+
+        normalise_data = False
+
         if normalise_data:
-            if normalise_by_column:
-                self.data = training_set / training_set.max(axis=1)[:, np.newaxis]
-            else:
-                self.data = training_set / self.data.max()
+            self.data = training_set / training_set.max(axis=1)[:, np.newaxis]
 
         self.net = np.random.random((network_dimensions[0], network_dimensions[1], self.m))
+
+        for x in range(self.net.shape[0]):
+            for y in range(self.net.shape[1]):
+                self.net[x, y, :] = self.data[:, np.random.randint(0, self.n)]
 
     def train(self):
         for i in range(self.n_iterations):
