@@ -103,6 +103,7 @@ class Kohonen:
     def decay_learning_rate(self, i):
         return self.init_learning_rate * np.exp(-i / self.n_iterations)
 
+    # funcion de vecinidad
     @staticmethod
     def calculate_influence(distance, radius):
         return np.exp(-distance / (2 * (radius ** 2)))
@@ -170,8 +171,8 @@ class Kohonen:
                 ax.add_patch(patches.Rectangle((x, y), 1, 1, facecolor='white', edgecolor='black'))
 
                 for classification in bmus.get(BmuIndx(x, y), []):
-                    x_aux = x + 0.5 + np.random.normal(0, 0.15)
-                    y_aux = y + 0.5 + np.random.normal(0, 0.15)
+                    x_aux = x + 0.5 + np.random.normal(0, 0.1)
+                    y_aux = y + 0.5 + np.random.normal(0, 0.1)
                     plt.plot(x_aux, y_aux, marker='.', color=classes_color[classification], markersize=24, label=classification)
 
         handles, labels = plt.gca().get_legend_handles_labels()

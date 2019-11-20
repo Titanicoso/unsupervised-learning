@@ -12,12 +12,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", help="Algorithm", choices={"km", "hc", "som"}, type=str, default='hc', required=False)
 parser.add_argument("-s", help="Split testing and test data percentage.", type=float, default=0.8, required=False)
 parser.add_argument("-k", help="KNN k", type=int, default=5, required=False)
-parser.add_argument("-attrs", help="Attributes to consider", type=str, default='abcdefg', required=False)
-parser.add_argument("-a", help="Authors to consider", type=str, default='c,f,p,va,ve', required=False)
+parser.add_argument("-attrs", help="Attributes to consider (abcdefg)", type=str, default='abcdefg', required=False)
+parser.add_argument("-a", help="Authors to consider (c,f,p,va,ve)", type=str, default='c,f,p,va,ve', required=False)
 parser.add_argument("-size", help="Size of network", type=int, required=False)
 parser.add_argument("-km", help="K from k-means", type=int, default=5, required=False)
-parser.add_argument("-l", help="Linkage", type=str, default='single', required=False)
+parser.add_argument("-l", help="Linkage", type=str, default='single', choices={'single', 'complete', 'average'}, required=False)
 parser.add_argument("-n", help="Normalize", default=True, required=False, action='store_true')
+parser.add_argument("-tr", help="Use training set for graphs.", default=False, required=False, action='store_true')
 args = parser.parse_args()
 
 point = args.p
@@ -28,6 +29,7 @@ size = args.size
 linkage = args.l
 attributes_to_consider = args.attrs
 normalize = args.n
+use_training = args.tr
 
 authors = []
 if 'c' in args.a:
@@ -52,22 +54,38 @@ if size is None:
 def k_means(training_set, test_set, test_set_class):
     kmeans = KMeans(km, training_set)
     kmeans.train()
-    kmeans.plot(test_set, test_set_class)
 
-    for index, element in enumerate(test_set):
-        print(kmeans.predict(element), test_set_class[index])
+    if use_training:
+        array = training_set
+        class_array = training_set_class
+    else:
+        array = test_set
+        class_array = test_set_class
+
+    kmeans.plot(array, class_array)
+
+    for index, element in enumerate(array):
+        print(kmeans.predict(element), class_array[index])
 
 
 def kohonen(training_set, test_set, test_set_class):
     training_set_array = np.array(training_set).T
     kohonen = Kohonen(10000, 0.01, training_set_array, size, size)
     kohonen.train()
-    kohonen.plot(test_set, test_set_class)
 
-    for index, element in enumerate(test_set):
+    if use_training:
+        kohonen.plot(training_set, training_set_class)
+        array = training_set
+        class_array = training_set_class
+    else:
+        kohonen.plot(test_set, test_set_class)
+        array = test_set
+        class_array = test_set_class
+
+    for index, element in enumerate(array):
         t = np.array(element).reshape(np.array([kohonen.m, 1]))
         bmu, bmu_idx = kohonen.find_bmu(t)
-        print(bmu_idx, test_set_class[index])
+        print(bmu_idx, class_array[index])
 
 
 def hierarchical_clustering(training_set):
